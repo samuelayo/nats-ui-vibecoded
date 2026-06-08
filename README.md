@@ -2,6 +2,8 @@
 
 A desktop NATS and JetStream inspector built with Go, Wails, and Vue.
 
+Built with Codex.
+
 The app is designed for scheduler-heavy JetStream setups, including sharded streams, scheduled messages, WorkQueue streams, consumers, stream browsing, Core NATS pub/sub, key-value buckets, and object stores.
 
 ## Features
