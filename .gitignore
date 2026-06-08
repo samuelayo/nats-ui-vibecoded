@@ -1,0 +1,19 @@
+build/bin
+node_modules
+frontend/dist
+
+# Local profile database and runtime state.
+# The app creates the real DB at ~/.nats-ui/nats-ui.db, but keep any copied
+# local DB files out of git too.
+.nats-ui/
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+
+# Local credentials and environment files.
+.env
+.env.*
+*.creds
+*.jwt
+*.nk
