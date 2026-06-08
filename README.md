@@ -101,7 +101,7 @@ Default locations:
 
 The app creates the `.nats-ui` folder automatically with `os.MkdirAll`, so a fresh checkout should not fail because the database is missing.
 
-Passwords are lightly obfuscated for local convenience, not encrypted as a security boundary. Treat the local DB like any other developer secret file.
+The SQLite database is not currently encrypted. Anyone who can read `~/.nats-ui/nats-ui.db` can open it with a SQLite viewer and inspect saved profile data. Profile names, URLs, usernames, creds paths, tokens, and recoverable passwords should be treated as readable by someone with access to that file. Passwords are lightly obfuscated for local convenience, not protected as a security boundary. Avoid saving production credentials unless your machine/user profile is trusted.
 
 ## Git Hygiene
 
