@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"os/exec"
 	"sort"
 	"strings"
 	"sync"
@@ -25,6 +26,7 @@ type App struct {
 	cancel context.CancelFunc
 	store  *ProfileStore
 	subs   map[string]*nats.Subscription
+	conn   ConnectRequest
 }
 
 func NewApp() *App {
@@ -45,6 +47,27 @@ type ConnectRequest struct {
 	Password  string `json:"password"`
 	Token     string `json:"token"`
 	CredsPath string `json:"credsPath"`
+}
+
+type CLICommandRequest struct {
+	Command        string `json:"command"`
+	UseConnection  bool   `json:"useConnection"`
+	URL            string `json:"url"`
+	Username       string `json:"username"`
+	Password       string `json:"password"`
+	Token          string `json:"token"`
+	CredsPath      string `json:"credsPath"`
+	TimeoutSeconds int    `json:"timeoutSeconds"`
+}
+
+type CLICommandResult struct {
+	Command        string   `json:"command"`
+	Args           []string `json:"args"`
+	Stdout         string   `json:"stdout"`
+	Stderr         string   `json:"stderr"`
+	ExitCode       int      `json:"exitCode"`
+	DurationMillis int64    `json:"durationMillis"`
+	StartedAt      string   `json:"startedAt"`
 }
 
 type ServerInfoData struct {
@@ -208,6 +231,7 @@ func (a *App) Connect(req ConnectRequest) (*ServerInfoData, error) {
 	a.nc = nc
 	a.js = js
 	a.cancel = cancel
+	a.conn = req
 	return a.serverInfoLocked(), nil
 }
 
@@ -279,6 +303,7 @@ func (a *App) Disconnect() {
 	}
 	a.nc = nil
 	a.js = nil
+	a.conn = ConnectRequest{}
 }
 
 func (a *App) Status() string {
@@ -288,6 +313,173 @@ func (a *App) Status() string {
 		return "Disconnected"
 	}
 	return "Connected to " + a.nc.ConnectedUrl()
+}
+
+func (a *App) RunNatsCLI(req CLICommandRequest) (*CLICommandResult, error) {
+	args, err := splitCommandLine(req.Command)
+	if err != nil {
+		return nil, err
+	}
+	if len(args) == 0 {
+		return nil, fmt.Errorf("empty command")
+	}
+	if args[0] == "nats" || args[0] == "nats.exe" {
+		args = args[1:]
+	}
+	if len(args) == 0 {
+		return nil, fmt.Errorf("provide nats arguments, for example: stream ls")
+	}
+
+	if req.UseConnection {
+		conn := ConnectRequest{
+			URL:       req.URL,
+			Username:  req.Username,
+			Password:  req.Password,
+			Token:     req.Token,
+			CredsPath: req.CredsPath,
+		}
+		a.mu.RLock()
+		cached := a.conn
+		a.mu.RUnlock()
+		if conn.URL == "" {
+			conn.URL = cached.URL
+		}
+		if conn.Username == "" {
+			conn.Username = cached.Username
+		}
+		if conn.Password == "" {
+			conn.Password = cached.Password
+		}
+		if conn.Token == "" {
+			conn.Token = cached.Token
+		}
+		if conn.CredsPath == "" {
+			conn.CredsPath = cached.CredsPath
+		}
+
+		connArgs := make([]string, 0, 8)
+		if strings.TrimSpace(conn.URL) != "" {
+			connArgs = append(connArgs, "--server", conn.URL)
+		}
+		if strings.TrimSpace(conn.Username) != "" {
+			connArgs = append(connArgs, "--user", conn.Username)
+		}
+		if conn.Password != "" {
+			connArgs = append(connArgs, "--password", conn.Password)
+		}
+		if conn.Token != "" {
+			connArgs = append(connArgs, "--token", conn.Token)
+		}
+		if strings.TrimSpace(conn.CredsPath) != "" {
+			connArgs = append(connArgs, "--creds", conn.CredsPath)
+		}
+		args = append(connArgs, args...)
+	}
+
+	timeout := time.Duration(req.TimeoutSeconds) * time.Second
+	if timeout <= 0 {
+		timeout = 30 * time.Second
+	}
+	if timeout > 5*time.Minute {
+		timeout = 5 * time.Minute
+	}
+
+	started := time.Now()
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, "nats", args...)
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err = cmd.Run()
+
+	maskedArgs := maskSensitiveArgs(args)
+	result := &CLICommandResult{
+		Command:        "nats " + strings.Join(maskedArgs, " "),
+		Args:           maskedArgs,
+		Stdout:         stdout.String(),
+		Stderr:         stderr.String(),
+		ExitCode:       0,
+		DurationMillis: time.Since(started).Milliseconds(),
+		StartedAt:      started.Format(time.RFC3339Nano),
+	}
+	if ctx.Err() == context.DeadlineExceeded {
+		result.ExitCode = -1
+		result.Stderr += "\ncommand timed out"
+		return result, nil
+	}
+	if err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			result.ExitCode = exitErr.ExitCode()
+			return result, nil
+		}
+		return nil, fmt.Errorf("run nats: %w", err)
+	}
+	return result, nil
+}
+
+func maskSensitiveArgs(args []string) []string {
+	masked := append([]string(nil), args...)
+	for i := 0; i < len(masked); i++ {
+		arg := masked[i]
+		if arg == "--password" || arg == "--token" || arg == "-p" || arg == "--pass" {
+			if i+1 < len(masked) {
+				masked[i+1] = "***"
+				i++
+			}
+			continue
+		}
+		for _, prefix := range []string{"--password=", "--token=", "--pass="} {
+			if strings.HasPrefix(arg, prefix) {
+				masked[i] = prefix + "***"
+				break
+			}
+		}
+	}
+	return masked
+}
+
+func splitCommandLine(input string) ([]string, error) {
+	var args []string
+	var current strings.Builder
+	var quote rune
+	escaped := false
+
+	for _, r := range input {
+		switch {
+		case escaped:
+			current.WriteRune(r)
+			escaped = false
+		case r == '\\':
+			escaped = true
+		case quote != 0:
+			if r == quote {
+				quote = 0
+			} else {
+				current.WriteRune(r)
+			}
+		case r == '\'' || r == '"':
+			quote = r
+		case r == ' ' || r == '\t' || r == '\n' || r == '\r':
+			if current.Len() > 0 {
+				args = append(args, current.String())
+				current.Reset()
+			}
+		default:
+			current.WriteRune(r)
+		}
+	}
+	if escaped {
+		current.WriteRune('\\')
+	}
+	if quote != 0 {
+		return nil, fmt.Errorf("unterminated quote")
+	}
+	if current.Len() > 0 {
+		args = append(args, current.String())
+	}
+	return args, nil
 }
 
 func (a *App) GetServerInfo() (*ServerInfoData, error) {

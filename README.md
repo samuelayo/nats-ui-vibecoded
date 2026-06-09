@@ -23,6 +23,7 @@ The app is designed for scheduler-heavy JetStream setups, including sharded stre
 - Go 1.25 or newer.
 - Node.js 20 or newer.
 - Wails CLI v2. Install this before trying to build the desktop app.
+- NATS CLI on your `PATH` if you want to use the in-app CLI page.
 - A NATS server with JetStream enabled for JetStream views.
 
 Install Wails if needed:
@@ -134,5 +135,6 @@ Do not commit real NATS credentials, creds files, tokens, or copied profile data
 ## Notes
 
 - The Vue app is display and interaction only; NATS access stays in Go.
+- The CLI page runs the installed `nats` binary with parsed arguments. It does not execute arbitrary shell commands.
 - Saved profile secrets stay in the local SQLite DB and are not returned to the frontend profile list.
 - For WorkQueue streams with gaps, message browsing probes available sequences and streams matches into the UI as they are found.

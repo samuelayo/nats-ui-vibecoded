@@ -30,6 +30,56 @@ export namespace main {
 	        this.compressed = source["compressed"];
 	    }
 	}
+	export class CLICommandRequest {
+	    command: string;
+	    useConnection: boolean;
+	    url: string;
+	    username: string;
+	    password: string;
+	    token: string;
+	    credsPath: string;
+	    timeoutSeconds: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new CLICommandRequest(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.command = source["command"];
+	        this.useConnection = source["useConnection"];
+	        this.url = source["url"];
+	        this.username = source["username"];
+	        this.password = source["password"];
+	        this.token = source["token"];
+	        this.credsPath = source["credsPath"];
+	        this.timeoutSeconds = source["timeoutSeconds"];
+	    }
+	}
+	export class CLICommandResult {
+	    command: string;
+	    args: string[];
+	    stdout: string;
+	    stderr: string;
+	    exitCode: number;
+	    durationMillis: number;
+	    startedAt: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new CLICommandResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.command = source["command"];
+	        this.args = source["args"];
+	        this.stdout = source["stdout"];
+	        this.stderr = source["stderr"];
+	        this.exitCode = source["exitCode"];
+	        this.durationMillis = source["durationMillis"];
+	        this.startedAt = source["startedAt"];
+	    }
+	}
 	export class ConnectRequest {
 	    url: string;
 	    username: string;

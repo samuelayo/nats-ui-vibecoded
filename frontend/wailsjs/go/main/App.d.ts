@@ -34,6 +34,8 @@ export function ListStreams():Promise<Array<main.StreamItem>>;
 
 export function RepublishMessage(arg1:string,arg2:string,arg3:Record<string, Array<string>>):Promise<void>;
 
+export function RunNatsCLI(arg1:main.CLICommandRequest):Promise<main.CLICommandResult>;
+
 export function SaveProfile(arg1:main.ConnectionProfile):Promise<number>;
 
 export function ScanMessages(arg1:string,arg2:main.MessageFilters):Promise<Array<main.MessageInfo>>;

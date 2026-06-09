@@ -434,6 +434,146 @@ tbody tr:hover { background: rgba(56, 243, 255, .08); }
 .mini-list { display: grid; gap: 8px; margin-top: 16px; }
 .mini-list button { text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
+.cli-page {
+  grid-template-rows: auto minmax(420px, 1fr);
+}
+.cli-console {
+  position: relative;
+  overflow: visible;
+}
+.cli-console::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  border-radius: 24px 0 0 24px;
+  background: linear-gradient(180deg, #38f3ff, #ff3f8f);
+}
+.cli-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+.cli-head h3 {
+  margin: 0 0 8px;
+  font-size: 32px;
+}
+.cli-head code,
+.terminal-empty code {
+  color: #7ee9ff;
+}
+.cli-flags {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  color: #c9d8ef;
+}
+.cli-flags label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid rgba(130, 190, 255, .16);
+  border-radius: 14px;
+  background: rgba(4, 16, 31, .58);
+}
+.cli-flags input[type="number"] {
+  width: 88px;
+  padding: 8px 10px;
+}
+.cli-input {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: stretch;
+  margin-top: 18px;
+}
+.prompt {
+  display: grid;
+  place-items: center;
+  min-width: 76px;
+  padding: 0 14px;
+  border-radius: 16px;
+  background: rgba(56, 243, 255, .12);
+  color: #38f3ff;
+  font-family: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
+  font-weight: 900;
+}
+.cli-input textarea {
+  min-height: 62px;
+  resize: vertical;
+  font-family: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
+}
+.quick-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+.quick-row button {
+  padding: 8px 12px;
+  border-radius: 999px;
+  color: #cdeaff;
+  background: rgba(90, 169, 255, .12);
+}
+.terminal-card {
+  min-height: 420px;
+  overflow: auto;
+  border: 1px solid rgba(130, 190, 255, .13);
+  border-radius: 24px;
+  background:
+    linear-gradient(180deg, rgba(6, 18, 34, .92), rgba(2, 10, 20, .94)),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.02) 0 1px, transparent 1px 28px);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 24px 70px rgba(0,0,0,.28);
+  scrollbar-width: none;
+}
+.terminal-card::-webkit-scrollbar { width: 0; height: 0; }
+.terminal-empty {
+  min-height: 360px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 8px;
+  color: #aabdd6;
+}
+.terminal-empty strong {
+  color: #f4fbff;
+  font-size: 24px;
+}
+.terminal-run {
+  border-bottom: 1px solid rgba(130, 190, 255, .1);
+  padding: 16px;
+}
+.terminal-run header {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  color: #8befff;
+  font-family: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
+}
+.terminal-run header span {
+  color: #9fb4ce;
+  white-space: nowrap;
+}
+.terminal-run.failed header strong {
+  color: #ff9fcb;
+}
+.terminal-run pre {
+  margin: 12px 0 0;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: #e7f5ff;
+  font-family: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.terminal-run pre.stderr {
+  color: #ffb8d2;
+}
+
 @media (max-width: 1250px) {
   .app-shell { grid-template-columns: 250px 1fr; }
   .hero-grid, .hero-grid.compact, .chart-grid { grid-template-columns: 1fr 1fr; }

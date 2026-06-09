@@ -66,6 +66,10 @@ export function RepublishMessage(arg1, arg2, arg3) {
   return window['go']['main']['App']['RepublishMessage'](arg1, arg2, arg3);
 }
 
+export function RunNatsCLI(arg1) {
+  return window['go']['main']['App']['RunNatsCLI'](arg1);
+}
+
 export function SaveProfile(arg1) {
   return window['go']['main']['App']['SaveProfile'](arg1);
 }

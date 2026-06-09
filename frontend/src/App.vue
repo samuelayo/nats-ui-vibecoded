@@ -20,6 +20,7 @@ import {
   CorePublish,
   SubscribeCore,
   UnsubscribeCore,
+  RunNatsCLI,
 } from '../wailsjs/go/main/App'
 import { EventsOn, Quit, WindowMinimise, WindowToggleMaximise } from '../wailsjs/runtime/runtime'
 
@@ -29,6 +30,7 @@ const pages = [
   ['streams', 'Streams'],
   ['consumers', 'Consumers'],
   ['messages', 'Message Browse'],
+  ['cli', 'CLI'],
   ['storage', 'Storage'],
 ]
 
@@ -88,6 +90,13 @@ const state = reactive({
     publishHeaders: '',
     subscribed: false,
     messages: [],
+  },
+  cli: {
+    command: 'stream ls',
+    useConnection: true,
+    timeoutSeconds: 30,
+    running: false,
+    results: [],
   },
 })
 
@@ -334,6 +343,43 @@ async function publishCore() {
   await run(async () => {
     await CorePublish(state.pubsub.publishSubject, state.pubsub.publishPayload, parseHeaders(state.pubsub.publishHeaders))
   })
+}
+
+async function runCLICommand() {
+  const command = state.cli.command.trim()
+  if (!command || state.cli.running) return
+  state.cli.running = true
+  state.error = ''
+  try {
+    const result = await RunNatsCLI({
+      command,
+      useConnection: state.cli.useConnection,
+      url: state.connect.url,
+      username: state.connect.username,
+      password: state.connect.password,
+      token: state.connect.token,
+      credsPath: state.connect.credsPath,
+      timeoutSeconds: Number(state.cli.timeoutSeconds) || 30,
+    })
+    state.cli.results.unshift(result)
+    state.cli.results = state.cli.results.slice(0, 25)
+  } catch (e) {
+    state.error = e?.message || String(e)
+    state.cli.results.unshift({
+      command,
+      stdout: '',
+      stderr: state.error,
+      exitCode: -1,
+      durationMillis: 0,
+      startedAt: new Date().toISOString(),
+    })
+  } finally {
+    state.cli.running = false
+  }
+}
+
+function useCLIExample(command) {
+  state.cli.command = command
 }
 
 function drawCharts() {
@@ -780,6 +826,47 @@ onMounted(async () => {
             </tbody>
           </table>
         </div>
+      </section>
+
+      <section v-if="state.page === 'cli'" class="page cli-page">
+        <article class="panel cli-console">
+          <div class="cli-head">
+            <div>
+              <p class="eyebrow">NATS command bridge</p>
+              <h3>CLI</h3>
+              <p class="muted">Runs the installed <code>nats</code> binary with parsed arguments. This does not invoke PowerShell, cmd, bash, or arbitrary shell commands.</p>
+            </div>
+            <div class="cli-flags">
+              <label><input type="checkbox" v-model="state.cli.useConnection" /> use current connection</label>
+              <label>timeout <input type="number" min="1" max="300" v-model.number="state.cli.timeoutSeconds" /></label>
+            </div>
+          </div>
+          <div class="cli-input">
+            <span class="prompt">nats</span>
+            <textarea v-model="state.cli.command" @keydown.ctrl.enter.prevent="runCLICommand" placeholder="stream ls"></textarea>
+            <button class="primary" :disabled="state.cli.running" @click="runCLICommand">{{ state.cli.running ? 'Running...' : 'Run' }}</button>
+          </div>
+          <div class="quick-row">
+            <button @click="useCLIExample('server info')">server info</button>
+            <button @click="useCLIExample('stream ls')">stream ls</button>
+            <button @click="useCLIExample('consumer ls SCHEDULER_0')">consumer ls</button>
+            <button @click="useCLIExample('stream info SCHEDULER_0')">stream info</button>
+          </div>
+        </article>
+        <article class="terminal-card">
+          <div v-if="!state.cli.results.length" class="terminal-empty">
+            <strong>No commands yet</strong>
+            <span>Try <code>stream ls</code> or paste any <code>nats</code> command arguments.</span>
+          </div>
+          <div v-for="(result, i) in state.cli.results" :key="i" class="terminal-run" :class="{ failed: result.exitCode !== 0 }">
+            <header>
+              <strong>{{ result.command }}</strong>
+              <span>exit {{ result.exitCode }} - {{ result.durationMillis }}ms - {{ fmtTime(result.startedAt) }}</span>
+            </header>
+            <pre v-if="result.stdout">{{ result.stdout }}</pre>
+            <pre v-if="result.stderr" class="stderr">{{ result.stderr }}</pre>
+          </div>
+        </article>
       </section>
 
       <section v-if="state.page === 'storage'" class="page">
