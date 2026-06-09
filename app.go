@@ -52,6 +52,7 @@ type ConnectRequest struct {
 type CLICommandRequest struct {
 	Command        string `json:"command"`
 	UseConnection  bool   `json:"useConnection"`
+	Force          bool   `json:"force"`
 	URL            string `json:"url"`
 	Username       string `json:"username"`
 	Password       string `json:"password"`
@@ -329,6 +330,9 @@ func (a *App) RunNatsCLI(req CLICommandRequest) (*CLICommandResult, error) {
 	if len(args) == 0 {
 		return nil, fmt.Errorf("provide nats arguments, for example: stream ls")
 	}
+	if req.Force && !hasArg(args, "--force") && !hasArg(args, "-f") {
+		args = append(args, "--force")
+	}
 
 	if req.UseConnection {
 		conn := ConnectRequest{
@@ -412,11 +416,25 @@ func (a *App) RunNatsCLI(req CLICommandRequest) (*CLICommandResult, error) {
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			result.ExitCode = exitErr.ExitCode()
+			if strings.Contains(result.Stderr, "cannot ask for confirmation without a terminal") {
+				result.Stderr += "\nTip: enable Force / no prompt or add --force to commands that require confirmation."
+			}
 			return result, nil
 		}
 		return nil, fmt.Errorf("run nats: %w", err)
 	}
 	return result, nil
+}
+
+func hasArg(args []string, names ...string) bool {
+	for _, arg := range args {
+		for _, name := range names {
+			if arg == name || strings.HasPrefix(arg, name+"=") {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func maskSensitiveArgs(args []string) []string {

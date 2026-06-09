@@ -94,6 +94,7 @@ const state = reactive({
   cli: {
     command: 'stream ls',
     useConnection: true,
+    force: false,
     timeoutSeconds: 30,
     running: false,
     results: [],
@@ -354,6 +355,7 @@ async function runCLICommand() {
     const result = await RunNatsCLI({
       command,
       useConnection: state.cli.useConnection,
+      force: state.cli.force,
       url: state.connect.url,
       username: state.connect.username,
       password: state.connect.password,
@@ -838,6 +840,7 @@ onMounted(async () => {
             </div>
             <div class="cli-flags">
               <label><input type="checkbox" v-model="state.cli.useConnection" /> use current connection</label>
+              <label><input type="checkbox" v-model="state.cli.force" /> force / no prompt</label>
               <label>timeout <input type="number" min="1" max="300" v-model.number="state.cli.timeoutSeconds" /></label>
             </div>
           </div>

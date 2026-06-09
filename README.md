@@ -135,6 +135,6 @@ Do not commit real NATS credentials, creds files, tokens, or copied profile data
 ## Notes
 
 - The Vue app is display and interaction only; NATS access stays in Go.
-- The CLI page runs the installed `nats` binary with parsed arguments. It does not execute arbitrary shell commands.
+- The CLI page runs the installed `nats` binary with parsed arguments. It does not execute arbitrary shell commands. Commands that normally ask for confirmation, such as `stream purge`, need `--force` or the page's "force / no prompt" toggle.
 - Saved profile secrets stay in the local SQLite DB and are not returned to the frontend profile list.
 - For WorkQueue streams with gaps, message browsing probes available sequences and streams matches into the UI as they are found.

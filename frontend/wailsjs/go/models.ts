@@ -33,6 +33,7 @@ export namespace main {
 	export class CLICommandRequest {
 	    command: string;
 	    useConnection: boolean;
+	    force: boolean;
 	    url: string;
 	    username: string;
 	    password: string;
@@ -48,6 +49,7 @@ export namespace main {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.command = source["command"];
 	        this.useConnection = source["useConnection"];
+	        this.force = source["force"];
 	        this.url = source["url"];
 	        this.username = source["username"];
 	        this.password = source["password"];
